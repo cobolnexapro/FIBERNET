@@ -1,0 +1,208 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    CUSTMNT.
+      *----------------------------------------------------------------
+      *  FIBERNET - CUSTOMER MASTER MAINTENANCE                         
+      *  FUNCTION : Add / Change / Delete / Inquiry on CUSTMAST.        
+      *             New customer ids are issued from CTLFILE (NXTCUST). 
+      *  NOTE    : Screen detail fields share names with the database   
+      *            record, so MOVE CORRESPONDING transfers them in one  
+      *            statement.  Fields living in two record formats      
+      *            (CUSTID, CPLANID) are always qualified with OF.      
+      *----------------------------------------------------------------
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.  IBM-AS400.
+       OBJECT-COMPUTER.  IBM-AS400.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CUSTMAST ASSIGN TO DATABASE-CUSTMAST
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-CUST-STS.
+           SELECT PLANMAST ASSIGN TO DATABASE-PLANMAST
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-PLAN-STS.
+           SELECT CTLFILE ASSIGN TO DATABASE-CTLFILE
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-CTL-STS.
+           SELECT DSPF ASSIGN TO WORKSTATION-CUSTMNTD-SI
+               ORGANIZATION IS TRANSACTION
+               FILE STATUS IS WS-DSP-STS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  CUSTMAST LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF CUSTMAST.
+       FD  PLANMAST LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF PLANMAST.
+       FD  CTLFILE  LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF CTLFILE.
+       FD  DSPF     LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF CUSTMNTD.
+
+       WORKING-STORAGE SECTION.
+       01  WS-STATUS-FLAGS.
+           05  WS-CUST-STS     PIC X(02) VALUE SPACES.
+           05  WS-PLAN-STS     PIC X(02) VALUE SPACES.
+           05  WS-CTL-STS      PIC X(02) VALUE SPACES.
+           05  WS-DSP-STS      PIC X(02) VALUE SPACES.
+       01  WS-INDIC.
+           05  EXIT-KEY        PIC 1 INDICATOR 03 VALUE B"0".
+           05  CANCEL-KEY      PIC 1 INDICATOR 12 VALUE B"0".
+       01  WS-FOUND-SW         PIC X(01) VALUE "N".
+           88  REC-FOUND                 VALUE "Y".
+           88  REC-NOTFOUND              VALUE "N".
+
+       PROCEDURE DIVISION.
+       000-MAIN.
+           OPEN I-O    CUSTMAST.
+           OPEN INPUT  PLANMAST.
+           OPEN I-O    CTLFILE.
+           OPEN I-O    DSPF.
+           PERFORM 100-PROCESS UNTIL EXIT-KEY = B"1".
+           CLOSE CUSTMAST PLANMAST CTLFILE DSPF.
+           GOBACK.
+
+       100-PROCESS.
+           MOVE SPACES TO MSGTXT.
+           MOVE ZEROS  TO CUSTID OF CUSTPMT.
+           MOVE SPACES TO ACTION.
+           WRITE CUSTPMT.
+           READ DSPF.
+           IF EXIT-KEY = B"1"
+               GO TO 100-EXIT
+           END-IF.
+           MOVE CUSTID OF CUSTPMT TO CUSTID OF CUSTREC.
+           EVALUATE ACTION
+               WHEN "A"  PERFORM 200-ADD
+               WHEN "C"  PERFORM 300-CHANGE
+               WHEN "D"  PERFORM 400-DELETE
+               WHEN "I"  PERFORM 500-INQUIRY
+               WHEN OTHER
+                   MOVE "Invalid action." TO MSGTXT
+                   WRITE CUSTPMT
+                   READ DSPF
+           END-EVALUATE.
+       100-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       200-ADD.
+      *    a new id is always issued from the control file, so the
+      *    value typed on the prompt is ignored for an add
+           PERFORM 700-NEXT-CUSTID.
+           INITIALIZE CUSTDTL.
+           MOVE "A" TO CUSTSTS.
+           WRITE CUSTDTL.
+           READ DSPF.
+           IF EXIT-KEY = B"1" OR CANCEL-KEY = B"1"
+               GO TO 200-EXIT
+           END-IF.
+           PERFORM 800-VALIDATE-PLAN.
+           IF MSGTXT NOT = SPACES
+               GO TO 200-EXIT
+           END-IF.
+           MOVE CORRESPONDING CUSTDTL TO CUSTREC.
+           WRITE CUSTREC.
+           IF WS-CUST-STS = "00"
+               STRING "Customer added.  Id = " CUSTID OF CUSTREC
+                   DELIMITED BY SIZE INTO MSGTXT
+           ELSE
+               MOVE "Add failed - file error."     TO MSGTXT
+           END-IF.
+       200-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       300-CHANGE.
+           PERFORM 600-READ-CUST.
+           IF REC-NOTFOUND
+               MOVE "Customer not found." TO MSGTXT
+               GO TO 300-EXIT
+           END-IF.
+           MOVE CORRESPONDING CUSTREC TO CUSTDTL.
+           WRITE CUSTDTL.
+           READ DSPF.
+           IF EXIT-KEY = B"1" OR CANCEL-KEY = B"1"
+               GO TO 300-EXIT
+           END-IF.
+           PERFORM 800-VALIDATE-PLAN.
+           IF MSGTXT NOT = SPACES
+               GO TO 300-EXIT
+           END-IF.
+           MOVE CORRESPONDING CUSTDTL TO CUSTREC.
+           REWRITE CUSTREC.
+           IF WS-CUST-STS = "00"
+               MOVE "Customer updated." TO MSGTXT
+           ELSE
+               MOVE "Update failed."    TO MSGTXT
+           END-IF.
+       300-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       400-DELETE.
+           PERFORM 600-READ-CUST.
+           IF REC-NOTFOUND
+               MOVE "Customer not found." TO MSGTXT
+               GO TO 400-EXIT
+           END-IF.
+           DELETE CUSTMAST RECORD.
+           IF WS-CUST-STS = "00"
+               MOVE "Customer deleted." TO MSGTXT
+           ELSE
+               MOVE "Delete failed."    TO MSGTXT
+           END-IF.
+       400-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       500-INQUIRY.
+           PERFORM 600-READ-CUST.
+           IF REC-NOTFOUND
+               MOVE "Customer not found." TO MSGTXT
+               GO TO 500-EXIT
+           END-IF.
+           MOVE CORRESPONDING CUSTREC TO CUSTDTL.
+           WRITE CUSTDTL.
+           READ DSPF.
+           MOVE "End of inquiry." TO MSGTXT.
+       500-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       600-READ-CUST.
+      *    CUSTID OF CUSTREC already holds the key value
+           READ CUSTMAST
+               INVALID KEY     SET REC-NOTFOUND TO TRUE
+               NOT INVALID KEY SET REC-FOUND    TO TRUE
+           END-READ.
+       600-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       700-NEXT-CUSTID.
+           MOVE "1" TO CTLID.
+           READ CTLFILE
+               INVALID KEY
+                   MOVE 1000 TO NXTCUST
+                   MOVE 1    TO NXTBILL NXTPAY NXTCMP
+                   WRITE CTLREC
+           END-READ.
+           MOVE NXTCUST TO CUSTID OF CUSTREC.
+           ADD 1 TO NXTCUST.
+           REWRITE CTLREC.
+       700-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       800-VALIDATE-PLAN.
+      *    confirm the plan entered on the detail screen exists
+           IF CPLANID OF CUSTDTL = ZEROS
+               GO TO 800-EXIT
+           END-IF.
+           MOVE CPLANID OF CUSTDTL TO PLANID.
+           READ PLANMAST
+               INVALID KEY
+                   MOVE "Plan id does not exist." TO MSGTXT
+           END-READ.
+       800-EXIT.
+           EXIT.

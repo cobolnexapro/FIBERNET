@@ -1,0 +1,60 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    FBNMENU.
+      *----------------------------------------------------------------
+      *  FIBERNET - TELECOMMUNICATION / FIBERNET BROADBAND SYSTEM       
+      *  MODULE   : MAIN MENU DRIVER                                    
+      *  FUNCTION : Displays the main menu and CALLs the sub-modules.   
+      *----------------------------------------------------------------
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.  IBM-AS400.
+       OBJECT-COMPUTER.  IBM-AS400.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT MENUFILE ASSIGN TO WORKSTATION-FBNMENUD-SI
+               ORGANIZATION IS TRANSACTION
+               FILE STATUS IS WS-DSP-STS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  MENUFILE LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF FBNMENUD.
+
+       WORKING-STORAGE SECTION.
+       01  WS-DSP-STS          PIC X(02) VALUE SPACES.
+       01  WS-INDIC.
+           05  EXIT-KEY        PIC 1 INDICATOR 03 VALUE B"0".
+       01  WS-PGM              PIC X(10) VALUE SPACES.
+
+       PROCEDURE DIVISION.
+       000-MAIN.
+           OPEN I-O MENUFILE.
+           PERFORM 100-PROCESS-MENU
+               UNTIL EXIT-KEY = B"1" OR OPTION = 90.
+           CLOSE MENUFILE.
+           STOP RUN.
+
+       100-PROCESS-MENU.
+           MOVE SPACES TO MSGTXT.
+           MOVE ZEROS  TO OPTION.
+           WRITE MENUFMT.
+           READ MENUFILE.
+           IF EXIT-KEY = B"1"
+               GO TO 100-EXIT.
+           EVALUATE OPTION
+               WHEN 1  MOVE "CUSTMNT" TO WS-PGM
+               WHEN 2  MOVE "PLANMNT" TO WS-PGM
+               WHEN 3  MOVE "BILLGEN" TO WS-PGM
+               WHEN 4  MOVE "PAYPROC" TO WS-PGM
+               WHEN 5  MOVE "CMPMNT"  TO WS-PGM
+               WHEN 6  MOVE "BILLRPT" TO WS-PGM
+               WHEN 90 MOVE SPACES    TO WS-PGM
+               WHEN OTHER
+                   MOVE SPACES TO WS-PGM
+                   MOVE "Invalid option - try again." TO MSGTXT
+           END-EVALUATE.
+           IF WS-PGM NOT = SPACES
+               CALL WS-PGM
+           END-IF.
+       100-EXIT.
+           EXIT.

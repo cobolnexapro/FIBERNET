@@ -1,0 +1,82 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    BILLRPT.
+      *----------------------------------------------------------------
+      *  FIBERNET - OUTSTANDING BILL REPORT                             
+      *  FUNCTION : List every bill that is not fully paid, ordered by  
+      *             customer (via logical file BILLMAST1), and print a  
+      *             grand total of the outstanding balance.             
+      *  OUTPUT  : Printer file BILLRPTP (spooled).                     
+      *----------------------------------------------------------------
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.  IBM-AS400.
+       OBJECT-COMPUTER.  IBM-AS400.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT BILLMAST1 ASSIGN TO DATABASE-BILLMAST1
+               ORGANIZATION IS INDEXED
+               ACCESS IS SEQUENTIAL
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-BILL-STS.
+           SELECT REPORT ASSIGN TO PRINTER-BILLRPTP
+               ORGANIZATION IS SEQUENTIAL
+               FILE STATUS IS WS-RPT-STS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  BILLMAST1 LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF BILLMAST1.
+       FD  REPORT    LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF BILLRPTP.
+
+       WORKING-STORAGE SECTION.
+       01  WS-STATUS-FLAGS.
+           05  WS-BILL-STS     PIC X(02) VALUE SPACES.
+           05  WS-RPT-STS      PIC X(02) VALUE SPACES.
+       01  WS-EOF-SW           PIC X(01) VALUE "N".
+           88  END-OF-BILL               VALUE "Y".
+       01  WS-ANY-SW           PIC X(01) VALUE "N".
+           88  ANY-PRINTED               VALUE "Y".
+       01  WS-BALANCE          PIC 9(09)V99 VALUE ZEROS.
+       01  WS-TOTAL            PIC 9(11)V99 VALUE ZEROS.
+       01  WS-CURR-DATE        PIC X(21).
+
+       PROCEDURE DIVISION.
+       000-MAIN.
+           OPEN INPUT  BILLMAST1.
+           OPEN OUTPUT REPORT.
+           MOVE FUNCTION CURRENT-DATE TO WS-CURR-DATE.
+           MOVE WS-CURR-DATE(1:8) TO RPTDT.
+           MOVE 1 TO PAGENO.
+           WRITE HDR.
+           READ BILLMAST1 NEXT
+               AT END SET END-OF-BILL TO TRUE
+           END-READ.
+           PERFORM 100-PROCESS UNTIL END-OF-BILL.
+           IF ANY-PRINTED
+               MOVE WS-TOTAL TO TBAL
+               WRITE TOTAL
+           ELSE
+               WRITE NODATA
+           END-IF.
+           CLOSE BILLMAST1 REPORT.
+           GOBACK.
+
+       100-PROCESS.
+           IF BILLSTS NOT = "P"
+               COMPUTE WS-BALANCE =
+                   BILLAMT OF BILLREC - BPAID OF BILLREC
+               MOVE BILLNO  TO PBILLNO
+               MOVE BCUSTID TO PCUST
+               MOVE BILLYM  TO PPER
+               MOVE BILLAMT OF BILLREC TO PAMT
+               MOVE BPAID   OF BILLREC TO PPAID
+               MOVE WS-BALANCE TO PBAL
+               MOVE BILLSTS TO PSTS
+               WRITE DETAIL
+               ADD WS-BALANCE TO WS-TOTAL
+               SET ANY-PRINTED TO TRUE
+           END-IF.
+           READ BILLMAST1 NEXT
+               AT END SET END-OF-BILL TO TRUE
+           END-READ.

@@ -1,0 +1,150 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    PLANMNT.
+      *----------------------------------------------------------------
+      *  FIBERNET - BROADBAND PLAN MASTER MAINTENANCE                   
+      *  FUNCTION : Add / Change / Delete / Inquiry on PLANMAST.        
+      *----------------------------------------------------------------
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.  IBM-AS400.
+       OBJECT-COMPUTER.  IBM-AS400.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT PLANMAST ASSIGN TO DATABASE-PLANMAST
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-PLAN-STS.
+           SELECT DSPF ASSIGN TO WORKSTATION-PLANMNTD-SI
+               ORGANIZATION IS TRANSACTION
+               FILE STATUS IS WS-DSP-STS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  PLANMAST LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF PLANMAST.
+       FD  DSPF     LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF PLANMNTD.
+
+       WORKING-STORAGE SECTION.
+       01  WS-STATUS-FLAGS.
+           05  WS-PLAN-STS     PIC X(02) VALUE SPACES.
+           05  WS-DSP-STS      PIC X(02) VALUE SPACES.
+       01  WS-INDIC.
+           05  EXIT-KEY        PIC 1 INDICATOR 03 VALUE B"0".
+           05  CANCEL-KEY      PIC 1 INDICATOR 12 VALUE B"0".
+       01  WS-FOUND-SW         PIC X(01) VALUE "N".
+           88  REC-FOUND                 VALUE "Y".
+           88  REC-NOTFOUND              VALUE "N".
+
+       PROCEDURE DIVISION.
+       000-MAIN.
+           OPEN I-O PLANMAST.
+           OPEN I-O DSPF.
+           PERFORM 100-PROCESS UNTIL EXIT-KEY = B"1".
+           CLOSE PLANMAST DSPF.
+           GOBACK.
+
+       100-PROCESS.
+           MOVE SPACES TO MSGTXT.
+           MOVE ZEROS  TO PLANID OF PLANPMT.
+           MOVE SPACES TO ACTION.
+           WRITE PLANPMT.
+           READ DSPF.
+           IF EXIT-KEY = B"1"
+               GO TO 100-EXIT
+           END-IF.
+           MOVE PLANID OF PLANPMT TO PLANID OF PLANREC.
+           EVALUATE ACTION
+               WHEN "A"  PERFORM 200-ADD
+               WHEN "C"  PERFORM 300-CHANGE
+               WHEN "D"  PERFORM 400-DELETE
+               WHEN "I"  PERFORM 500-INQUIRY
+               WHEN OTHER
+                   MOVE "Invalid action." TO MSGTXT
+                   WRITE PLANPMT
+                   READ DSPF
+           END-EVALUATE.
+       100-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       200-ADD.
+           PERFORM 600-READ-PLAN.
+           IF REC-FOUND
+               MOVE "Plan already exists." TO MSGTXT
+               GO TO 200-EXIT
+           END-IF.
+           INITIALIZE PLANDTL.
+           MOVE "A" TO PLANSTS.
+           WRITE PLANDTL.
+           READ DSPF.
+           IF EXIT-KEY = B"1" OR CANCEL-KEY = B"1"
+               GO TO 200-EXIT
+           END-IF.
+           MOVE CORRESPONDING PLANDTL TO PLANREC.
+           WRITE PLANREC.
+           IF WS-PLAN-STS = "00"
+               MOVE "Plan added successfully." TO MSGTXT
+           ELSE
+               MOVE "Add failed - file error." TO MSGTXT
+           END-IF.
+       200-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       300-CHANGE.
+           PERFORM 600-READ-PLAN.
+           IF REC-NOTFOUND
+               MOVE "Plan not found." TO MSGTXT
+               GO TO 300-EXIT
+           END-IF.
+           MOVE CORRESPONDING PLANREC TO PLANDTL.
+           WRITE PLANDTL.
+           READ DSPF.
+           IF EXIT-KEY = B"1" OR CANCEL-KEY = B"1"
+               GO TO 300-EXIT
+           END-IF.
+           MOVE CORRESPONDING PLANDTL TO PLANREC.
+           REWRITE PLANREC.
+           IF WS-PLAN-STS = "00"
+               MOVE "Plan updated." TO MSGTXT
+           ELSE
+               MOVE "Update failed." TO MSGTXT
+           END-IF.
+       300-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       400-DELETE.
+           PERFORM 600-READ-PLAN.
+           IF REC-NOTFOUND
+               MOVE "Plan not found." TO MSGTXT
+               GO TO 400-EXIT
+           END-IF.
+           DELETE PLANMAST RECORD.
+           IF WS-PLAN-STS = "00"
+               MOVE "Plan deleted." TO MSGTXT
+           ELSE
+               MOVE "Delete failed." TO MSGTXT
+           END-IF.
+       400-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       500-INQUIRY.
+           PERFORM 600-READ-PLAN.
+           IF REC-NOTFOUND
+               MOVE "Plan not found." TO MSGTXT
+               GO TO 500-EXIT
+           END-IF.
+           MOVE CORRESPONDING PLANREC TO PLANDTL.
+           WRITE PLANDTL.
+           READ DSPF.
+           MOVE "End of inquiry." TO MSGTXT.
+       500-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       600-READ-PLAN.
+           READ PLANMAST
+               INVALID KEY     SET REC-NOTFOUND TO TRUE
+               NOT INVALID KEY SET REC-FOUND    TO TRUE
+           END-READ.
+       600-EXIT.
+           EXIT.
