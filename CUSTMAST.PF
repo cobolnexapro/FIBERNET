@@ -1,0 +1,16 @@
+     A*-----------------------------------------------------------------
+     A* CUSTMAST - CUSTOMER MASTER
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A          R CUSTREC                   TEXT('CUSTOMER MASTER RECORD')
+     A            CUSTID         7P 0       TEXT('CUSTOMER ID')
+     A            CUSTNM        30          TEXT('CUSTOMER NAME')
+     A            CUSTAD1       30          TEXT('ADDRESS LINE 1')
+     A            CUSTCTY       20          TEXT('CITY')
+     A            CUSTPIN        6P 0       TEXT('PIN CODE')
+     A            CUSTPHN       15          TEXT('PHONE NUMBER')
+     A            CUSTEML       40          TEXT('EMAIL ID')
+     A            CPLANID        4P 0       TEXT('SUBSCRIBED PLAN')
+     A            CONNDT         8P 0       TEXT('CONN DATE YYYYMMDD')
+     A            CUSTSTS        1          TEXT('STATUS A/I/S')
+     A          K CUSTID

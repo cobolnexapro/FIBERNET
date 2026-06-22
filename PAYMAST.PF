@@ -1,0 +1,13 @@
+     A*-----------------------------------------------------------------
+     A* PAYMAST - PAYMENT MASTER
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A          R PAYREC                    TEXT('PAYMENT RECORD')
+     A            PAYNO          9P 0       TEXT('PAYMENT NUMBER')
+     A            PBILLNO        9P 0       TEXT('BILL NUMBER')
+     A            PCUSTID        7P 0       TEXT('CUSTOMER ID')
+     A            PAYDT          8P 0       TEXT('PAY DATE YYYYMMDD')
+     A            PAYAMT         9P 2       TEXT('PAYMENT AMOUNT')
+     A            PAYMODE        6          TEXT('CASH/CARD/UPI/NET')
+     A            PAYREF        20          TEXT('REFERENCE / TXN ID')
+     A          K PAYNO

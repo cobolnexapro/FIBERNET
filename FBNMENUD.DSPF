@@ -1,0 +1,24 @@
+     A*-----------------------------------------------------------------
+     A* FBNMENUD - MAIN MENU DISPLAY
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A                                      DSPSIZ(24 80 *DS3)
+     A                                      PRINT
+     A                                      CA03(03 'EXIT')
+     A                                      CA12(12 'CANCEL')
+     A                                      INDARA
+     A          R MENUFMT                   TEXT('MAIN MENU')
+     A                                      BLINK
+     A                                  2 28'F I B E R N E T   S Y S T E M'
+     A                                  4 30'M A I N   M E N U'
+     A                                  7 25'1. Customer Maintenance'
+     A                                  8 25'2. Plan Maintenance'
+     A                                  9 25'3. Generate Monthly Bills'
+     A                                 10 25'4. Payment Processing'
+     A                                 11 25'5. Complaint Registration'
+     A                                 12 25'6. Billing / Outstanding Report'
+     A                                 13 25'90. Sign Off'
+     A                                 16 25'Option . . . :'
+     A            OPTION         2S 0I 16 40VALUES(1 2 3 4 5 6 90)
+     A            MSGTXT        60   O 22 10COLOR(RED)
+     A                                 23 10'F3=Exit'

@@ -1,0 +1,28 @@
+     A*-----------------------------------------------------------------
+     A* CMPMNTD - COMPLAINT MAINTENANCE DISPLAY
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A                                      DSPSIZ(24 80 *DS3)
+     A                                      PRINT
+     A                                      CA03(03 'EXIT')
+     A                                      CA12(12 'CANCEL')
+     A                                      INDARA
+     A          R CMPPMT                    TEXT('COMPLAINT PROMPT')
+     A                                  2 25'FIBERNET - COMPLAINT REGISTRATION'
+     A                                  6 15'Complaint No . :'
+     A            CMPNO          9S 0I  6 35TEXT('0=NEW COMPLAINT')
+     A                                  8 15'Action (A/C/I) :'
+     A            ACTION         1   I  8 35VALUES('A' 'C' 'I')
+     A                                 10 15'A=Add  C=Change Status  I=Inquiry'
+     A            MSGTXT        60   O 22 10COLOR(RED)
+     A                                 23 10'Enter=Continue   F3=Exit'
+     A          R CMPDTL                    TEXT('COMPLAINT DETAIL')
+     A                                      OVERLAY
+     A                                 12  5'Customer ID. . :'
+     A            CCUSTID        7S 0B 12 25
+     A                                 13  5'Type . . . . . :'
+     A            CMPTYP         4   B 13 25VALUES('SPED' 'CONN' 'BILL' 'OTHR')
+     A                                 14  5'Description. . :'
+     A            CMPDESC       50   B 14 25
+     A                                 15  5'Status (O/P/C) :'
+     A            CMPSTS         1   B 15 25VALUES('O' 'P' 'C')

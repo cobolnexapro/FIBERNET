@@ -1,0 +1,38 @@
+     A*-----------------------------------------------------------------
+     A* CUSTMNTD - CUSTOMER MAINTENANCE DISPLAY
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A                                      DSPSIZ(24 80 *DS3)
+     A                                      PRINT
+     A                                      CA03(03 'EXIT')
+     A                                      CA12(12 'CANCEL')
+     A                                      INDARA
+     A          R CUSTPMT                   TEXT('CUSTOMER PROMPT')
+     A                                  2 26'FIBERNET - CUSTOMER MAINTENANCE'
+     A                                  6 20'Customer ID . . :'
+     A            CUSTID         7S 0I  6 40
+     A                                  8 20'Action (A/C/D/I) :'
+     A            ACTION         1   I  8 40VALUES('A' 'C' 'D' 'I')
+     A                                 10 20'A=Add  C=Change  D=Delete  I=Inquiry'
+     A            MSGTXT        60   O 22 10COLOR(RED)
+     A                                 23 10'Enter=Continue   F3=Exit'
+     A          R CUSTDTL                   TEXT('CUSTOMER DETAIL')
+     A                                      OVERLAY
+     A                                 12  5'Name . . . . . :'
+     A            CUSTNM        30   B 12 25
+     A                                 13  5'Address. . . . :'
+     A            CUSTAD1       30   B 13 25
+     A                                 14  5'City . . . . . :'
+     A            CUSTCTY       20   B 14 25
+     A                                 15  5'PIN. . . . . . :'
+     A            CUSTPIN        6S 0B 15 25
+     A                                 16  5'Phone. . . . . :'
+     A            CUSTPHN       15   B 16 25
+     A                                 17  5'Email. . . . . :'
+     A            CUSTEML       40   B 17 25
+     A                                 18  5'Plan ID. . . . :'
+     A            CPLANID        4S 0B 18 25
+     A                                 19  5'Conn. Date . . :'
+     A            CONNDT         8S 0B 19 25
+     A                                 20  5'Status (A/I/S) :'
+     A            CUSTSTS        1   B 20 25

@@ -1,0 +1,31 @@
+     A*-----------------------------------------------------------------
+     A* PLANMNTD - PLAN MAINTENANCE DISPLAY
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A                                      DSPSIZ(24 80 *DS3)
+     A                                      PRINT
+     A                                      CA03(03 'EXIT')
+     A                                      CA12(12 'CANCEL')
+     A                                      INDARA
+     A          R PLANPMT                   TEXT('PLAN PROMPT')
+     A                                  2 28'FIBERNET - PLAN MAINTENANCE'
+     A                                  6 20'Plan ID . . . . :'
+     A            PLANID         4S 0I  6 40
+     A                                  8 20'Action (A/C/D/I) :'
+     A            ACTION         1   I  8 40VALUES('A' 'C' 'D' 'I')
+     A            MSGTXT        60   O 22 10COLOR(RED)
+     A                                 23 10'Enter=Continue   F3=Exit'
+     A          R PLANDTL                   TEXT('PLAN DETAIL')
+     A                                      OVERLAY
+     A                                 11  5'Plan Name. . . :'
+     A            PLANNM        25   B 11 25
+     A                                 12  5'Speed (Mbps) . :'
+     A            PLANSPD        5S 0B 12 25
+     A                                 13  5'Monthly Rental :'
+     A            PLANRATE       7S 2B 13 25
+     A                                 14  5'Data Limit . . :'
+     A            PLANDATA      10   B 14 25
+     A                                 15  5'Description. . :'
+     A            PLANDESC      40   B 15 25
+     A                                 16  5'Status (A/I) . :'
+     A            PLANSTS        1   B 16 25

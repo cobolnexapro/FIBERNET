@@ -1,0 +1,83 @@
+/*================================================================*/
+/*  FIBERNET - BUILD / COMPILE DRIVER                             */
+/*  Creates the FIBERNET library, all database / display / printer*/
+/*  objects (DDS) and all ILE COBOL programs, in dependency order.*/
+/*                                                                */
+/*  PRE-REQUISITE: the source members must already exist in       */
+/*    FIBERNET/QDDSSRC   (members: *.PF *.LF *.DSPF *.PRTF)        */
+/*    FIBERNET/QCBLLESRC (members: *.CBLLE)                        */
+/*    FIBERNET/QCLSRC    (this member: BLDFBN)                     */
+/*  See README for how to upload the IFS files into these members.*/
+/*                                                                */
+/*  COMPILE THIS CL:  CRTBNDCL PGM(FIBERNET/BLDFBN) +             */
+/*                    SRCFILE(FIBERNET/QCLSRC)                     */
+/*  RUN:              CALL FIBERNET/BLDFBN                         */
+/*================================================================*/
+             PGM
+
+/* ---- 1. library + library list -------------------------------*/
+             CRTLIB     LIB(FIBERNET) TEXT('FIBERNET BROADBAND SYSTEM')
+             MONMSG     MSGID(CPF2111)        /* already exists   */
+             ADDLIBLE   LIB(FIBERNET) POSITION(*FIRST)
+             MONMSG     MSGID(CPF2103)        /* already in list  */
+
+/* ---- 2. physical files (DDS) ---------------------------------*/
+             CRTPF      FILE(FIBERNET/CTLFILE)  SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(CTLFILE)
+             CRTPF      FILE(FIBERNET/PLANMAST) SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(PLANMAST)
+             CRTPF      FILE(FIBERNET/CUSTMAST) SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(CUSTMAST)
+             CRTPF      FILE(FIBERNET/BILLMAST) SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(BILLMAST)
+             CRTPF      FILE(FIBERNET/PAYMAST)  SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(PAYMAST)
+             CRTPF      FILE(FIBERNET/CMPMAST)  SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(CMPMAST)
+
+/* ---- 3. logical file (after its physical) --------------------*/
+             CRTLF      FILE(FIBERNET/BILLMAST1) SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(BILLMAST1)
+
+/* ---- 4. display files ----------------------------------------*/
+             CRTDSPF    FILE(FIBERNET/FBNMENUD) SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(FBNMENUD)
+             CRTDSPF    FILE(FIBERNET/CUSTMNTD) SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(CUSTMNTD)
+             CRTDSPF    FILE(FIBERNET/PLANMNTD) SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(PLANMNTD)
+             CRTDSPF    FILE(FIBERNET/PAYPROCD) SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(PAYPROCD)
+             CRTDSPF    FILE(FIBERNET/CMPMNTD)  SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(CMPMNTD)
+
+/* ---- 5. printer file -----------------------------------------*/
+             CRTPRTF    FILE(FIBERNET/BILLRPTP) SRCFILE(FIBERNET/QDDSSRC) +
+                          SRCMBR(BILLRPTP)
+
+/* ---- 6. ILE COBOL programs (files must exist first) ----------*/
+             CRTBNDCBL  PGM(FIBERNET/CUSTMNT) SRCFILE(FIBERNET/QCBLLESRC) +
+                          SRCMBR(CUSTMNT)
+             CRTBNDCBL  PGM(FIBERNET/PLANMNT) SRCFILE(FIBERNET/QCBLLESRC) +
+                          SRCMBR(PLANMNT)
+             CRTBNDCBL  PGM(FIBERNET/BILLGEN) SRCFILE(FIBERNET/QCBLLESRC) +
+                          SRCMBR(BILLGEN)
+             CRTBNDCBL  PGM(FIBERNET/PAYPROC) SRCFILE(FIBERNET/QCBLLESRC) +
+                          SRCMBR(PAYPROC)
+             CRTBNDCBL  PGM(FIBERNET/CMPMNT)  SRCFILE(FIBERNET/QCBLLESRC) +
+                          SRCMBR(CMPMNT)
+             CRTBNDCBL  PGM(FIBERNET/BILLRPT) SRCFILE(FIBERNET/QCBLLESRC) +
+                          SRCMBR(BILLRPT)
+             CRTBNDCBL  PGM(FIBERNET/FBNMENU) SRCFILE(FIBERNET/QCBLLESRC) +
+                          SRCMBR(FBNMENU)
+
+/* ---- 7. seed the control record (next-number file) -----------*/
+/*   The maintenance programs also self-seed on first use, but    */
+/*   this guarantees a clean starting point.                      */
+             RUNSQL     SQL('INSERT INTO FIBERNET/CTLFILE +
+                          VALUES(''1'', 1000, 1, 1, 1)') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)        /* ignore if exists */
+
+             SNDPGMMSG  MSG('FIBERNET build complete. CALL FIBERNET/FBNMENU')
+             ENDPGM

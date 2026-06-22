@@ -1,0 +1,7 @@
+     A*-----------------------------------------------------------------
+     A* BILLMAST1 - LOGICAL VIEW OF BILLMAST BY CUSTOMER
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A          R BILLREC                   PFILE(BILLMAST)
+     A          K BCUSTID
+     A          K BILLYM

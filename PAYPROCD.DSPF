@@ -1,0 +1,31 @@
+     A*-----------------------------------------------------------------
+     A* PAYPROCD - PAYMENT PROCESSING DISPLAY
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A                                      DSPSIZ(24 80 *DS3)
+     A                                      PRINT
+     A                                      CA03(03 'EXIT')
+     A                                      CA12(12 'CANCEL')
+     A                                      INDARA
+     A          R PAYPMT                    TEXT('PAYMENT PROMPT')
+     A                                  2 27'FIBERNET - PAYMENT PROCESSING'
+     A                                  6 15'Bill Number. . :'
+     A            PBILLNO        9S 0I  6 35
+     A            MSGTXT        60   O 22 10COLOR(RED)
+     A                                 23 10'Enter=Continue   F3=Exit'
+     A          R PAYDTL                    TEXT('PAYMENT DETAIL')
+     A                                      OVERLAY
+     A                                  8 15'Customer ID. . :'
+     A            PCUSTID        7S 0O  8 35
+     A                                  9 15'Bill Amount. . :'
+     A            BILLAMT        9S 2O  9 35
+     A                                 10 15'Already Paid . :'
+     A            BPAID          9S 2O 10 35
+     A                                 11 15'Balance Due. . :'
+     A            BALDUE         9S 2O 11 35
+     A                                 13 15'Pay Amount . . :'
+     A            PAYAMT         9S 2B 13 35
+     A                                 14 15'Mode . . . . . :'
+     A            PAYMODE        6   B 14 35VALUES('CASH' 'CARD' 'UPI' 'NET')
+     A                                 15 15'Reference. . . :'
+     A            PAYREF        20   B 15 35

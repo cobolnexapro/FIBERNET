@@ -1,0 +1,11 @@
+     A*-----------------------------------------------------------------
+     A* CTLFILE - SYSTEM CONTROL / NEXT-NUMBER FILE
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A          R CTLREC                    TEXT('CONTROL RECORD')
+     A            CTLID          1          TEXT('CONTROL KEY (1)')
+     A            NXTCUST        7P 0       TEXT('NEXT CUSTOMER NO')
+     A            NXTBILL        9P 0       TEXT('NEXT BILL NO')
+     A            NXTPAY         9P 0       TEXT('NEXT PAYMENT NO')
+     A            NXTCMP         9P 0       TEXT('NEXT COMPLAINT NO')
+     A          K CTLID

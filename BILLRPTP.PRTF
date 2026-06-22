@@ -1,0 +1,31 @@
+     A*-----------------------------------------------------------------
+     A* BILLRPTP - BILLING / OUTSTANDING REPORT (PRINTER FILE)
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A                                      REF(*LIBL/BILLMAST)
+     A          R HDR                       SKIPB(01)
+     A                                  1 50'FIBERNET BROADBAND'
+     A            RPTDT          8S 0O  1100EDTWRD('    /  /    ')
+     A                                  2 48'OUTSTANDING BILL REPORT'
+     A            PAGENO         4S 0O  2100EDTCDE(Z)
+     A                                  4  2'BILL NO'
+     A                                  4 14'CUST ID'
+     A                                  4 24'PERIOD'
+     A                                  4 34'BILL AMT'
+     A                                  4 48'PAID'
+     A                                  4 60'BALANCE'
+     A                                  4 72'STS'
+     A                                  5  2'------------------------------------------------------------------------------'
+     A          R DETAIL                    SPACEB(01)
+     A            PBILLNO        9S 0O     2EDTCDE(Z)
+     A            PCUST          7S 0O    14EDTCDE(Z)
+     A            PPER           6S 0O    24EDTCDE(Z)
+     A            PAMT           9S 2O    32EDTCDE(1)
+     A            PPAID          9S 2O    46EDTCDE(1)
+     A            PBAL           9S 2O    58EDTCDE(1)
+     A            PSTS           1   O    73
+     A          R TOTAL                     SPACEB(02)
+     A                                     2'GRAND TOTAL OUTSTANDING:'
+     A            TBAL          11S 2O    52EDTCDE(1)
+     A          R NODATA                    SPACEB(02)
+     A                                     2'*** NO OUTSTANDING BILLS FOUND ***'

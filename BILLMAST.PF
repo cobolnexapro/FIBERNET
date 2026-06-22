@@ -1,0 +1,16 @@
+     A*-----------------------------------------------------------------
+     A* BILLMAST - BILLING MASTER
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A          R BILLREC                   TEXT('BILL RECORD')
+     A            BILLNO         9P 0       TEXT('BILL NUMBER')
+     A            BCUSTID        7P 0       TEXT('CUSTOMER ID')
+     A            BILLYM         6P 0       TEXT('BILL PERIOD YYYYMM')
+     A            BILLDT         8P 0       TEXT('BILL DATE YYYYMMDD')
+     A            BRENTAL        7P 2       TEXT('PLAN RENTAL')
+     A            BTAX           7P 2       TEXT('TAX (GST 18%)')
+     A            BILLAMT        9P 2       TEXT('TOTAL BILL AMOUNT')
+     A            BPAID          9P 2       TEXT('AMOUNT PAID')
+     A            DUEDT          8P 0       TEXT('DUE DATE YYYYMMDD')
+     A            BILLSTS        1          TEXT('O=OPEN P=PAID R=PART')
+     A          K BILLNO

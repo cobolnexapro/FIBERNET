@@ -1,0 +1,13 @@
+     A*-----------------------------------------------------------------
+     A* CMPMAST - COMPLAINT / SERVICE-REQUEST MASTER
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A          R CMPREC                    TEXT('COMPLAINT RECORD')
+     A            CMPNO          9P 0       TEXT('COMPLAINT NUMBER')
+     A            CCUSTID        7P 0       TEXT('CUSTOMER ID')
+     A            CMPDT          8P 0       TEXT('LOG DATE YYYYMMDD')
+     A            CMPTYP         4          TEXT('SPED/CONN/BILL/OTHR')
+     A            CMPDESC       50          TEXT('DESCRIPTION')
+     A            CMPSTS         1          TEXT('O=OPEN P=PROG C=CLOSE')
+     A            RESLDT         8P 0       TEXT('RESOLVED YYYYMMDD')
+     A          K CMPNO

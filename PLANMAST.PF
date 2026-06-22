@@ -1,0 +1,13 @@
+     A*-----------------------------------------------------------------
+     A* PLANMAST - BROADBAND PLAN MASTER
+     A* FIBERNET - Telecommunication / Fibernet Broadband System
+     A*-----------------------------------------------------------------
+     A          R PLANREC                   TEXT('PLAN MASTER RECORD')
+     A            PLANID         4P 0       TEXT('PLAN ID')
+     A            PLANNM        25          TEXT('PLAN NAME')
+     A            PLANSPD        5P 0       TEXT('SPEED MBPS')
+     A            PLANRATE       7P 2       TEXT('MONTHLY RENTAL')
+     A            PLANDATA      10          TEXT('DATA LIMIT')
+     A            PLANDESC      40          TEXT('DESCRIPTION')
+     A            PLANSTS        1          TEXT('STATUS A/I')
+     A          K PLANID
