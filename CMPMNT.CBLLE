@@ -1,0 +1,192 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    CMPMNT.
+      *----------------------------------------------------------------
+      *  FIBERNET - COMPLAINT / SERVICE-REQUEST REGISTRATION            
+      *  FUNCTION : A=log a new complaint, C=change status,            *
+      *             I=inquiry, on CMPMAST.                              
+      *             New complaint numbers come from CTLFILE (NXTCMP).   
+      *----------------------------------------------------------------
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.  IBM-AS400.
+       OBJECT-COMPUTER.  IBM-AS400.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CMPMAST ASSIGN TO DATABASE-CMPMAST
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-CMP-STS.
+           SELECT CUSTMAST ASSIGN TO DATABASE-CUSTMAST
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-CUST-STS.
+           SELECT CTLFILE ASSIGN TO DATABASE-CTLFILE
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-CTL-STS.
+           SELECT DSPF ASSIGN TO WORKSTATION-CMPMNTD-SI
+               ORGANIZATION IS TRANSACTION
+               FILE STATUS IS WS-DSP-STS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  CMPMAST  LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF CMPMAST.
+       FD  CUSTMAST LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF CUSTMAST.
+       FD  CTLFILE  LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF CTLFILE.
+       FD  DSPF     LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF CMPMNTD.
+
+       WORKING-STORAGE SECTION.
+       01  WS-STATUS-FLAGS.
+           05  WS-CMP-STS      PIC X(02) VALUE SPACES.
+           05  WS-CUST-STS     PIC X(02) VALUE SPACES.
+           05  WS-CTL-STS      PIC X(02) VALUE SPACES.
+           05  WS-DSP-STS      PIC X(02) VALUE SPACES.
+       01  WS-INDIC.
+           05  EXIT-KEY        PIC 1 INDICATOR 03 VALUE B"0".
+           05  CANCEL-KEY      PIC 1 INDICATOR 12 VALUE B"0".
+       01  WS-FOUND-SW         PIC X(01) VALUE "N".
+           88  REC-FOUND                 VALUE "Y".
+           88  REC-NOTFOUND              VALUE "N".
+       01  WS-NXTCMP           PIC 9(09) VALUE ZEROS.
+       01  WS-CURR-DATE        PIC X(21).
+       01  WS-TODAY            PIC 9(08) VALUE ZEROS.
+
+       PROCEDURE DIVISION.
+       000-MAIN.
+           OPEN I-O   CMPMAST.
+           OPEN INPUT CUSTMAST.
+           OPEN I-O   CTLFILE.
+           OPEN I-O   DSPF.
+           MOVE FUNCTION CURRENT-DATE TO WS-CURR-DATE.
+           MOVE WS-CURR-DATE(1:8) TO WS-TODAY.
+           PERFORM 100-PROCESS UNTIL EXIT-KEY = B"1".
+           CLOSE CMPMAST CUSTMAST CTLFILE DSPF.
+           GOBACK.
+
+       100-PROCESS.
+           MOVE SPACES TO MSGTXT.
+           MOVE ZEROS  TO CMPNO OF CMPPMT.
+           MOVE SPACES TO ACTION.
+           WRITE CMPPMT.
+           READ DSPF.
+           IF EXIT-KEY = B"1"
+               GO TO 100-EXIT
+           END-IF.
+           EVALUATE ACTION
+               WHEN "A"  PERFORM 200-ADD
+               WHEN "C"  PERFORM 300-CHANGE
+               WHEN "I"  PERFORM 500-INQUIRY
+               WHEN OTHER
+                   MOVE "Invalid action." TO MSGTXT
+                   WRITE CMPPMT
+                   READ DSPF
+           END-EVALUATE.
+       100-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       200-ADD.
+           INITIALIZE CMPDTL.
+           MOVE "O" TO CMPSTS OF CMPDTL.
+           WRITE CMPDTL.
+           READ DSPF.
+           IF EXIT-KEY = B"1" OR CANCEL-KEY = B"1"
+               GO TO 200-EXIT
+           END-IF.
+           PERFORM 700-VALIDATE-CUST.
+           IF MSGTXT NOT = SPACES
+               GO TO 200-EXIT
+           END-IF.
+           PERFORM 600-NEXT-CMPNO.
+           INITIALIZE CMPREC.
+           MOVE WS-NXTCMP TO CMPNO OF CMPREC.
+           MOVE CORRESPONDING CMPDTL TO CMPREC.
+           MOVE WS-TODAY TO CMPDT.
+           MOVE "O"      TO CMPSTS OF CMPREC.
+           MOVE ZEROS    TO RESLDT.
+           WRITE CMPREC.
+           IF WS-CMP-STS = "00"
+               STRING "Complaint logged.  Number = " WS-NXTCMP
+                   DELIMITED BY SIZE INTO MSGTXT
+           ELSE
+               MOVE "Add failed - file error." TO MSGTXT
+           END-IF.
+       200-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       300-CHANGE.
+           MOVE CMPNO OF CMPPMT TO CMPNO OF CMPREC.
+           PERFORM 400-READ-CMP.
+           IF REC-NOTFOUND
+               MOVE "Complaint not found." TO MSGTXT
+               GO TO 300-EXIT
+           END-IF.
+           MOVE CORRESPONDING CMPREC TO CMPDTL.
+           WRITE CMPDTL.
+           READ DSPF.
+           IF EXIT-KEY = B"1" OR CANCEL-KEY = B"1"
+               GO TO 300-EXIT
+           END-IF.
+           MOVE CORRESPONDING CMPDTL TO CMPREC.
+           IF CMPSTS OF CMPREC = "C" AND RESLDT = ZEROS
+               MOVE WS-TODAY TO RESLDT
+           END-IF.
+           REWRITE CMPREC.
+           IF WS-CMP-STS = "00"
+               MOVE "Complaint updated." TO MSGTXT
+           ELSE
+               MOVE "Update failed." TO MSGTXT
+           END-IF.
+       300-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       400-READ-CMP.
+           READ CMPMAST
+               INVALID KEY     SET REC-NOTFOUND TO TRUE
+               NOT INVALID KEY SET REC-FOUND    TO TRUE
+           END-READ.
+       400-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       500-INQUIRY.
+           MOVE CMPNO OF CMPPMT TO CMPNO OF CMPREC.
+           PERFORM 400-READ-CMP.
+           IF REC-NOTFOUND
+               MOVE "Complaint not found." TO MSGTXT
+               GO TO 500-EXIT
+           END-IF.
+           MOVE CORRESPONDING CMPREC TO CMPDTL.
+           WRITE CMPDTL.
+           READ DSPF.
+           MOVE "End of inquiry." TO MSGTXT.
+       500-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       600-NEXT-CMPNO.
+           MOVE "1" TO CTLID.
+           READ CTLFILE
+               INVALID KEY
+                   MOVE 1000 TO NXTCUST
+                   MOVE 1    TO NXTBILL NXTPAY NXTCMP
+                   WRITE CTLREC
+           END-READ.
+           MOVE NXTCMP TO WS-NXTCMP.
+           ADD 1 TO NXTCMP.
+           REWRITE CTLREC.
+       600-EXIT.
+           EXIT.
+      *----------------------------------------------------------------
+       700-VALIDATE-CUST.
+           MOVE CCUSTID OF CMPDTL TO CUSTID.
+           READ CUSTMAST
+               INVALID KEY
+                   MOVE "Customer id does not exist." TO MSGTXT
+           END-READ.
+       700-EXIT.
+           EXIT.

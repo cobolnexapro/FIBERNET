@@ -1,0 +1,141 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    BILLGEN.
+      *----------------------------------------------------------------
+      *  FIBERNET - MONTHLY BILL GENERATION (BATCH)                     
+      *  FUNCTION : For every ACTIVE customer, raise a bill for the     
+      *             current period (YYYYMM).  Rental is taken from the  
+      *             subscribed plan, GST is charged at 18%.             
+      *  NOTE    : Run once per month.  Bill numbers come from CTLFILE. 
+      *----------------------------------------------------------------
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.  IBM-AS400.
+       OBJECT-COMPUTER.  IBM-AS400.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CUSTMAST ASSIGN TO DATABASE-CUSTMAST
+               ORGANIZATION IS INDEXED
+               ACCESS IS SEQUENTIAL
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-CUST-STS.
+           SELECT PLANMAST ASSIGN TO DATABASE-PLANMAST
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-PLAN-STS.
+           SELECT BILLMAST ASSIGN TO DATABASE-BILLMAST
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-BILL-STS.
+           SELECT CTLFILE ASSIGN TO DATABASE-CTLFILE
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY IS EXTERNALLY-DESCRIBED-KEY
+               FILE STATUS IS WS-CTL-STS.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  CUSTMAST LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF CUSTMAST.
+       FD  PLANMAST LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF PLANMAST.
+       FD  BILLMAST LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF BILLMAST.
+       FD  CTLFILE  LABEL RECORDS ARE STANDARD.
+           COPY DDS-ALL-FORMATS OF CTLFILE.
+
+       WORKING-STORAGE SECTION.
+       01  WS-STATUS-FLAGS.
+           05  WS-CUST-STS     PIC X(02) VALUE SPACES.
+           05  WS-PLAN-STS     PIC X(02) VALUE SPACES.
+           05  WS-BILL-STS     PIC X(02) VALUE SPACES.
+           05  WS-CTL-STS      PIC X(02) VALUE SPACES.
+       01  WS-EOF-SW           PIC X(01) VALUE "N".
+           88  END-OF-CUST               VALUE "Y".
+       01  WS-CURR-DATE        PIC X(21).
+       01  WS-TODAY            PIC 9(08) VALUE ZEROS.
+       01  WS-PERIOD           PIC 9(06) VALUE ZEROS.
+       01  WS-COUNT            PIC 9(05) VALUE ZEROS.
+       01  WS-RENTAL           PIC 9(07)V99 VALUE ZEROS.
+       01  WS-TAX              PIC 9(07)V99 VALUE ZEROS.
+       01  WS-NXTBILL          PIC 9(09) VALUE ZEROS.
+
+       PROCEDURE DIVISION.
+       000-MAIN.
+           PERFORM 100-INIT.
+           PERFORM 200-PROCESS-CUST UNTIL END-OF-CUST.
+           PERFORM 900-WRAPUP.
+           CLOSE CUSTMAST PLANMAST BILLMAST CTLFILE.
+           DISPLAY "BILLGEN COMPLETE - BILLS RAISED: " WS-COUNT.
+           GOBACK.
+
+       100-INIT.
+           OPEN INPUT  CUSTMAST.
+           OPEN INPUT  PLANMAST.
+           OPEN I-O    BILLMAST.
+           OPEN I-O    CTLFILE.
+           MOVE FUNCTION CURRENT-DATE TO WS-CURR-DATE.
+           MOVE WS-CURR-DATE(1:8) TO WS-TODAY.
+           MOVE WS-CURR-DATE(1:6) TO WS-PERIOD.
+           PERFORM 800-LOAD-CTL.
+           READ CUSTMAST NEXT
+               AT END SET END-OF-CUST TO TRUE
+           END-READ.
+
+       200-PROCESS-CUST.
+           IF CUSTSTS = "A"
+               PERFORM 300-RAISE-BILL
+           END-IF.
+           READ CUSTMAST NEXT
+               AT END SET END-OF-CUST TO TRUE
+           END-READ.
+
+       300-RAISE-BILL.
+      *    look up the plan rental
+           MOVE CPLANID TO PLANID.
+           READ PLANMAST
+               INVALID KEY
+                   MOVE ZEROS TO WS-RENTAL
+               NOT INVALID KEY
+                   MOVE PLANRATE TO WS-RENTAL
+           END-READ.
+           IF WS-RENTAL = ZEROS
+               GO TO 300-EXIT
+           END-IF.
+           COMPUTE WS-TAX ROUNDED = WS-RENTAL * 0.18.
+      *    build the bill record
+           INITIALIZE BILLREC.
+           MOVE WS-NXTBILL TO BILLNO.
+           MOVE CUSTID   TO BCUSTID.
+           MOVE WS-PERIOD TO BILLYM.
+           MOVE WS-TODAY TO BILLDT.
+           MOVE WS-TODAY TO DUEDT.
+           MOVE WS-RENTAL TO BRENTAL.
+           MOVE WS-TAX    TO BTAX.
+           COMPUTE BILLAMT = WS-RENTAL + WS-TAX.
+           MOVE ZEROS TO BPAID.
+           MOVE "O"   TO BILLSTS.
+           WRITE BILLREC.
+           IF WS-BILL-STS = "00"
+               ADD 1 TO WS-COUNT
+               ADD 1 TO WS-NXTBILL
+           END-IF.
+       300-EXIT.
+           EXIT.
+
+       800-LOAD-CTL.
+           MOVE "1" TO CTLID.
+           READ CTLFILE
+               INVALID KEY
+                   MOVE 1000 TO NXTCUST
+                   MOVE 1    TO NXTBILL NXTPAY NXTCMP
+                   WRITE CTLREC
+           END-READ.
+           MOVE NXTBILL TO WS-NXTBILL.
+
+       900-WRAPUP.
+           MOVE "1" TO CTLID.
+           READ CTLFILE INVALID KEY CONTINUE END-READ.
+           MOVE WS-NXTBILL TO NXTBILL.
+           REWRITE CTLREC.
